@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>HTML5 local media player</title>
+<style>
+input { display: block; }
+div { display: flex; column-gap: 1em; }
+#prev, #next { cursor: pointer; padding: 1px 6px; border-style: solid; }
+table { border: 1px solid #CCC; border-spacing: 0; border-radius: .5em; overflow: hidden; }
+td:not(.nowplaying) { cursor: pointer; }
+td:not(.nowplaying):hover { color: darkblue; }
+.nowplaying { background-color: #CCC; color: blue; }
+</style>
+<script type="module">
+let playlist = [], index = 0;
+document.addEventListener('DOMContentLoaded', function() {
+	const inputNode = document.querySelector('input');
+	const videoNode = document.querySelector('video');
+	const play = function( event ) {
+		if( event ) {
+			const newIndex = Number(event.target.id);
+			if( newIndex === index )
+				return;
+			index = newIndex;
+		}
+		const file = playlist[index];
+		if( videoNode.canPlayType(file.type) === '' )
+			return;
+		videoNode.src = window.URL.createObjectURL(file);
+		document.querySelector('td.nowplaying')?.classList.remove('nowplaying');
+		document.getElementById(index).classList.add('nowplaying');
+	};
+	const next = function() {
+		if( ++index >= playlist.length ) {
+			index = playlist.length-1;
+			videoNode.currentTime = videoNode.duration;
+			inputNode.style.display = null;
+			return;
+		}
+		play();
+	};
+	const prev = function() {
+		if( --index < 0 ) {
+			index = 0;
+			return;
+		}
+		play();
+	};
+	const select = function() {
+		playlist = this.files;
+		let playlist_table = '';
+		for( let i=0; i<playlist.length; ++i ) {
+			const name = playlist[i].name.replace(/\.[^ /.]+$/, '');
+			playlist_table += `<tr><td id="${i}">${name}</td></tr>`;
+		}
+		document.querySelector('table').innerHTML = playlist_table;
+		document.querySelectorAll('td').forEach( item => item.addEventListener('click', play) );
+		if( playlist.length > 1 )
+			document.querySelector('div').style.display = null;
+		inputNode.style.display = 'none';
+		index = 0;
+		play();
+	};
+	inputNode.addEventListener('change', select);
+	videoNode.addEventListener('ended', next);
+	document.querySelector('#prev').addEventListener('click', prev);
+	document.querySelector('#next').addEventListener('click', next);
+})
+</script>
+</head>
+<body>
+<video controls autoplay></video>
+<input type="file" accept="video/*,audio/*" multiple>
+<div style="display: none"><button id="prev">⏮</button><button id="next">⏭</button></div>
+<table></table>
+</body>
+</html>
